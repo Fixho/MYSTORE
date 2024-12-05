@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "mybatis-3-mapper.dtd" >
+<mapper namespace="personnelMapper">
+
+<resultMap id="empMemberResultMap" type="EmpMemberDto">
+		<result column="EMP_NO" property="empNo"/>
+		<result column="EMP_NAME" property="empName"/>
+		<result column="EMP_GENDER" property="empGender"/>
+		<result column="EMP_BIRTH" property="empBirth"/>
+		<result column="EMP_PHONE" property="empPhone"/>
+		<result column="EMP_EMAIL" property="empEmail"/>
+		<result column="EMP_ADDRESS" property="empAddress"/>
+		<result column="EMP_EMPLOYMENT" property="empEmployment"/>
+		<result column="EMP_DETAILADDRESS" property="empDetailAddress"/>
+		<result column="EMP_POSTCODE" property="empPostcode"/>
+		<result column="EMP_PASSWORD" property="empPwd"/>
+		<result column="EMP_AUTH" property="empAuth"/>
+		<result column="EMP_RANK" property="empRank"/>
+		<result column="EMP_PROFILE" property="empProfile"/>
+		<result column="DEPT_CODE" property="deptCode"/>
+		<result column="USE_YN" property="useYn"/>
+		<result column="AC_NO" property="acNo"/>
+		<result column="AC_BANK" property="acBank"/>
+		<result column="CREATER" property="creater"/>
+		<result column="MODIFIER" property="modifier"/>
+		<result column="CREATE_DATE" property="createDate"/>
+		<result column="MODIFY_DATE" property="modifyDate"/>
+</resultMap>
+
+<resultMap id="salaryResultMap" type="SalaryDto">
+	<result column="SALARY_NO" property="salaryNo" />
+	<result column="EMP_NO" property="empNo" />
+	<result column="EMP_NAME" property="empName" />
+	<result column="SAL_BASE" property="salBase" />
+	<result column="SAL_NP" property="salNp" />
+	<result column="SAL_HI" property="salHi" />
+	<result column="SAL_EI" property="salEi" />
+	<result column="SAL_NET_SALARY" property="salNetSalary" />
+	
+</resultMap>
+
+<!-- 마이페이지 수정 -->
+<update id="updateEmployee">
+ UPDATE 
+ 		TBL_EMPLOYEE
+ 	SET 
+ 		EMP_PHONE = #{empPhone}
+ 	  , EMP_EMAIL = #{empEmail}
+ 	  , EMP_POSTCODE = #{empPostcode}
+ 	  , EMP_ADDRESS = #{empAddress}
+ 	  , EMP_DETAILADDRESS = #{empDetailAddress}
+  where EMP_NO = #{empNo}
+
+</update>
+
+<!-- 비밀번호 변경 -->
+<update id="passwordRecovery">
+ UPDATE
+ 		    TBL_EMPLOYEE
+ 	  SET EMP_PASSWORD = #{empPwd}
+ 		  , USE_YN = 'Y'
+  WHERE EMP_NO = #{empNo}
+
+</update>
+
+<!-- 비밀번호 조회 -->
+<select id="selectEmpPwd">
+  	SELECT
+           EMP_PASSWORD
+      FROM TBL_EMPLOYEE
+     WHERE EMP_PASSWORD = #{checkpwd}
+</select>
+
+<!-- 사원 목록 조회용  -->
+<select id="selectEmpList" resultMap="empMemberResultMap">
+  SELECT
+           EMP.EMP_NO,
+           EMP.EMP_NAME,
+           EMP.EMP_GENDER,
+           EMP.EMP_BIRTH,
+           EMP.EMP_PHONE,
+           EMP.EMP_EMAIL,
+           EMP.EMP_ADDRESS,
+           EMP.EMP_EMPLOYMENT,
+           EMP.EMP_DETAILADDRESS,
+           EMP.EMP_POSTCODE,
+           EMP.EMP_PASSWORD,
+           EMP.EMP_AUTH,
+           EMP_PROFILE,
+           POS.NM AS EMP_RANK,           -- 직급명 가져오기
+           DC.DEPT_NAME AS DEPT_CODE,		 -- 부서명
+           EMP.CREATE_DATE,
+           EMP.MODIFY_DATE,
+           EMP.CREATER,
+           EMP.MODIFIER,
+           EMP.USE_YN,
+           EMP.AC_NO,
+           EMP.AC_BANK
+    FROM
+         TBL_EMPLOYEE EMP
+    LEFT JOIN
+         TBL_COMMON_CODE POS ON EMP.EMP_AUTH = POS.CD
+    LEFT JOIN 
+         tbl_department DC ON EMP.DEPT_CODE = DC.DEPT_CODE        	
+   ORDER
+      BY EMP_NO DESC
+</select>
+
+<!-- 페이징 카운트 -->
+<select id="selectEmpListCount" resultType="int">
+SELECT
+       count(*)
+  FROM
+       TBL_EMPLOYEE 
+</select>
+
+<select id="selectSearchListCount" resultType="_int">
+SELECT
+       count(*)
+  FROM
+       TBL_EMPLOYEE
+ where ${condition} like '%' || #{keyword} || '%' 
+</select>
+
+<select id="selectSearchList" resultMap="empMemberResultMap">
+  
+  SELECT
+           EMP.EMP_NO,
+           EMP.EMP_NAME,
+           EMP.EMP_PHONE,
+           EMP.EMP_EMAIL,
+           POS.NM AS EMP_RANK,           -- 직급명 가져오기
+           DC.DEPT_NAME AS DEPT_CODE,		 -- 부서명
+           EMP.CREATE_DATE
+    FROM
+         TBL_EMPLOYEE EMP
+    LEFT JOIN
+         TBL_COMMON_CODE POS ON EMP.EMP_AUTH = POS.CD
+    LEFT JOIN 
+         TBL_DEPARTMENT DC ON EMP.DEPT_CODE = DC.DEPT_CODE        	
+   WHERE emp.${condition} LIKE '%' || #{keyword} || '%'
+   ORDER BY EMP_NO DESC
+</select>
+
+
+<!-- 사번으로 사원 조회 -->
+<select id="selectEmpByNo" resultMap="empMemberResultMap">
+ SELECT
+         EMP.EMP_NO,
+         EMP.EMP_NAME,
+         EMP.EMP_PHONE,
+         EMP.EMP_EMAIL,
+         EMP.EMP_PROFILE,
+         EMP.EMP_BIRTH,
+         EMP.AC_NO,
+         EMP.AC_BANK,
+         EMP.EMP_POSTCODE,
+         EMP.EMP_ADDRESS,
+         EMP.EMP_DETAILADDRESS,
+         POS.NM AS EMP_RANK,           -- 직급명 가져오기
+         DC.DEPT_NAME AS DEPT_CODE,		 -- 부서명
+         EMP.CREATE_DATE
+    FROM
+         TBL_EMPLOYEE EMP
+    LEFT JOIN
+         TBL_COMMON_CODE POS ON EMP.EMP_AUTH = POS.CD
+    LEFT JOIN 
+         tbl_department DC ON EMP.DEPT_CODE = DC.DEPT_CODE
+   WHERE EMP.EMP_NO = #{empNo}  	
+
+</select>
+
+<!-- 이름으로 사원 조회 -->
+<select id="selectEmpByName" resultMap="empMemberResultMap">
+ SELECT
+         EMP.EMP_NO,
+         EMP.EMP_NAME,
+         EMP.EMP_PHONE,
+         EMP.EMP_EMAIL,
+         POS.NM AS EMP_RANK,           -- 직급명 가져오기
+         DC.DEPT_NAME AS DEPT_CODE,		 -- 부서명
+         EMP.CREATE_DATE
+    FROM
+         TBL_EMPLOYEE EMP
+    LEFT JOIN
+         TBL_COMMON_CODE POS ON EMP.EMP_AUTH = POS.CD
+    LEFT JOIN 
+         tbl_department DC ON EMP.DEPT_CODE = DC.DEPT_CODE
+   WHERE EMP.EMP_NO = #{empName}  	
+
+</select>
+
+
+<!-- 사원 등록 -->
+<insert id="insertEmp">
+	INSERT INTO 
+		TBL_EMPLOYEE
+	(
+		EMP_NO,
+		EMP_NAME,
+		EMP_GENDER,
+		EMP_BIRTH,
+		EMP_EMAIL,
+		EMP_PHONE,
+		AC_NO,
+		AC_BANK,
+		EMP_ADDRESS,
+		EMP_POSTCODE,
+		EMP_DETAILADDRESS,
+		EMP_PASSWORD,
+		DEPT_CODE,
+		EMP_PROFILE
+	)
+	VALUES
+	(
+		EMP_NO_SEQ.NEXTVAL,  
+		#{empName},
+		#{empGender},
+		#{empBirth},
+		#{empEmail},
+		#{empPhone},
+		#{acNo},
+		#{acBank},
+		#{empAddress},
+		#{empPostcode},
+		#{empDetailAddress},
+		#{empPwd},           
+		#{deptCode},         
+		#{empProfile}       
+	)
+</insert>
+
+<!-- 사원 수정 -->
+<update id="updateEmp">
+	UPDATE
+		   TBL_EMPLOYEE
+	   SET
+		   EMP_NAME = #{empName},
+		   EMP_BIRTH = #{empBirth},
+		   EMP_EMAIL = #{empEmail},
+		   EMP_PHONE = #{empPhone},
+		   AC_NO = #{acNo},
+		   AC_BANK = #{acBank},
+		   EMP_ADDRESS = #{empAddress},
+		   EMP_POSTCODE = #{empPostcode},
+		   EMP_DETAILADDRESS = #{empDetailAddress},
+		   EMP_RANK = #{empRank},      
+		   EMP_PROFILE = #{empProfile} 
+	 WHERE 
+		   EMP_NO = #{empNo}
+</update>
+
+<!-- 퇴사처리 -->
+<update id="updatequit">
+	UPDATE
+	       TBL_EMPLOYEE
+	   SET 
+	       EMP_EMPLOYMENT = 'N'
+	 WHERE 
+	       EMP_NO = #{empNo}
+
+</update>
+
+<select id="getSalary" resultMap="salaryResultMap">
+   SELECT
+        S.salary_no,
+        S.emp_no,
+        e.emp_name,
+        S.sal_base,
+        S.sal_np,
+        S.sal_hi,
+        S.sal_ei,
+        S.sal_net_salary
+ FROM 
+        TBL_EMPLOYEE E
+ JOIN 
+        TBL_SALARY S ON E.EMP_NO = S.EMP_NO
+ WHERE 
+        E.EMP_NO = #{empNo}
+
+</select>
+
+<insert id="saveSalary">
+	INSERT INTO
+	    TBL_SALARY
+	(
+        SALARY_NO,
+        EMP_NO,
+        SAL_BASE,
+        SAL_NP,
+        SAL_HI,
+        SAL_EI,
+        SAL_NET_SALARY
+        )
+        VALUES
+        (
+        SALARY_NO_SEQ.NEXTVAL,
+        #{empNo},
+        #{salBase},
+        #{salNp},
+        #{salHi},
+        #{salEi},
+        #{salNetSalary}
+        )
+</insert>
+
+
+</mapper>

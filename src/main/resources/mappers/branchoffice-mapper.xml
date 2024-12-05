@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "mybatis-3-mapper.dtd" >
+<mapper namespace="branchofficeMapper">
+  
+  <resultMap id="boResultMap" type="ProductDto">
+		<result column="PRODUCT_NO" property="productNo"/>
+		<result column="CLASSIFICATION_NO" property="productDivision"/>
+		<result column="PRODUCT_NAME" property="productName"/>
+		<result column="COST" property="cost"/>
+		<result column="SAIL_PRICE" property="sailPrice"/>
+		<result column="PROFIT_MARGIN" property="profitMargin"/>
+		<result column="EXPIRATION_PERIOD" property="expirationPeriod"/>
+		<result column="PRODUCT_IMG" property="productImg"/>
+		<result column="CREATER" property="creater"/>
+		<result column="CREATE_DATE" property="createDate"/>
+		<result column="MODIFIER" property="modifier"/>
+		<result column="MODIFY_DATE" property="modifyDate" />
+		<result column="DELIVERY_DATE" property="deliveryDate" />
+		<result column="USE_YN" property="useYn" />
+		<result column="INVENTORY" property="inventory" />
+		<result column="EVENT" property="event" />
+  </resultMap>
+  <resultMap id="cCResultMap" type="CommonCodeDto">
+  	<result column="CD" property="commonCode"/>
+  	<result column="NM" property="commonName"/>
+  	<result column="CREATER" property="creater"/>
+  	<result column="MODIFY" property="modify"/>
+  	<result column="CREATE_DATE" property="createrDate"/>
+  	<result column="MODIFY_DATE" property="modifyDate"/>
+  </resultMap>
+  <select id="selectProductListCount"  resultType="_int">
+		select 
+					 count(*)
+			from TBL_PRODUCT
+  </select>
+  <select id="selectList" resultMap="boResultMap">
+  	select
+		       PRODUCT_NO
+		     , C.NM as "CLASSIFICATION_NO"
+		     , PRODUCT_NAME
+		     , COST
+		     , SAIL_PRICE
+         , PROFIT_MARGIN
+         , EXPIRATION_PERIOD
+         , PRODUCT_IMG
+         , e.EMP_NAME as "create"
+         , p.CREATE_DATE
+         , e.EMP_NAME as "MODIFIER"
+         , p.MODIFY_DATE
+         , p.DELIVERY_DATE
+         , p.USE_YN
+         , INVENTORY
+         , EVENT
+		  from TBL_PRODUCT p 
+		  join TBL_EMPLOYEE e on (p.CREATER = e.EMP_NO)
+      join TBL_COMMON_CODE c on(SUBSTR(c.CD, -1) = CLASSIFICATION_NO)
+		 where c.CD LIKE 'PC00%'
+		 order by PRODUCT_NO desc
+  </select>
+  <select id="selectDto" resultMap="boResultMap">
+  select
+		       PRODUCT_NO
+		     , C.NM as "CLASSIFICATION_NO"
+		     , PRODUCT_NAME
+		     , COST
+		     , SAIL_PRICE
+         , PROFIT_MARGIN
+         , TO_CHAR(EXPIRATION_PERIOD,'YY-MM-DD') as "EXPIRATION_PERIOD"
+         , PRODUCT_IMG
+         , e.EMP_NAME as "create"
+         , p.CREATE_DATE
+         , e.EMP_NAME as "MODIFIER"
+         , p.MODIFY_DATE
+         , p.DELIVERY_DATE
+         , p.USE_YN
+         , INVENTORY
+         , EVENT
+		  from TBL_PRODUCT p 
+		  join TBL_EMPLOYEE e on (p.CREATER = e.EMP_NO)
+      join TBL_COMMON_CODE c on(SUBSTR(c.CD, -1) = CLASSIFICATION_NO)
+		 where c.CD LIKE 'PC00%'
+		   and product_no = #{prono}
+  </select>
+  <select id="selectCommonDto" resultMap="cCResultMap">
+		select 
+  			   CD
+		     , NM
+		     , CREATER
+		     , "MODIFY" 
+		     , CREATE_DATE
+		     , MODIFY_DATE
+    from TBL_COMMON_CODE    
+   where CD LIKE 'PC00%'
+	</select>
+	<update id="updateProduct">
+		update TBL_PRODUCT
+		   set
+		 		   CLASSIFICATION_NO = #{productDivision}
+		 		 , PRODUCT_NAME	= #{productName}	
+		 		 , COST = #{cost}
+		 		 , SAIL_PRICE = #{sailPrice}
+		 		 , PROFIT_MARGIN = #{profitMargin}
+		 		 , EXPIRATION_PERIOD = TO_DATE(#{expirationPeriod}, 'YY-MM-DD')
+		 		 , PRODUCT_IMG =#{productImg}
+		 		 , MODIFY_DATE =sysdate
+		 		 , DELIVERY_DATE =#{deliveryDate}
+		 		 , USE_YN =#{useYn}
+		 		 , INVENTORY =#{inventory}
+         , EVENT =#{event}
+		 where PRODUCT_NO = #{productNo}     
+					 
+	</update>
+	<insert id="insertProduct">
+		insert 
+		  into TBL_PRODUCT
+		  (
+		  	PRODUCT_NO
+			,	CLASSIFICATION_NO
+			,	PRODUCT_NAME
+			,	COST
+			,	SAIL_PRICE
+			,	PROFIT_MARGIN
+			,	EXPIRATION_PERIOD
+			,	PRODUCT_IMG
+			,	CREATER
+			,	CREATE_DATE
+			,	MODIFIER
+			,	MODIFY_DATE
+			,	DELIVERY_DATE
+			,	USE_YN
+			, INVENTORY
+      , EVENT
+		  )
+		 values
+		 (
+		 	 PRODUCT_NO_SEQ.NEXTVAL
+		 , #{productDivision}	 
+		 , #{productName}	 
+		 , #{cost}	 
+		 , #{sailPrice}	 
+		 , #{profitMargin}	 
+		 , TO_DATE(#{expirationPeriod}, 'YY-MM-DD')	 
+		 , #{productImg}
+		 , '1010'	 
+	   , sysdate
+		 , '1010'	 
+     , sysdate
+		 , #{deliveryDate}	 
+		 , #{useYn}
+		 , #{inventory}
+		 , #{event}	 
+		 )
+		
+		  
+	</insert>
+	<delete id="deleteProduct">
+		delete 
+		  from TBL_PRODUCT
+		  <where>
+		 	<foreach item="checkedValues" collection="array"
+		 		 open="PRODUCT_NO in (" separator="," close=")">
+		 		#{checkedValues}
+		 	</foreach>
+		 </where>
+	
+	</delete>
+	<select id="searchCount"  resultType="_int">
+		select 
+					 count(*)
+			from TBL_PRODUCT
+		 where PRODUCT_NAME like '%' || #{searchValue} || '%'
+  </select>
+	<select id="selectSearchList" resultMap="boResultMap">
+  	select
+		       PRODUCT_NO
+		     , C.NM as "CLASSIFICATION_NO"
+		     , PRODUCT_NAME
+		     , COST
+		     , SAIL_PRICE
+         , PROFIT_MARGIN
+         , EXPIRATION_PERIOD
+         , PRODUCT_IMG
+         , e.EMP_NAME as "create"
+         , p.CREATE_DATE
+         , e.EMP_NAME as "MODIFIER"
+         , p.MODIFY_DATE
+         , p.DELIVERY_DATE
+         , p.USE_YN
+         , INVENTORY
+      	 , EVENT
+		  from TBL_PRODUCT p 
+		  join TBL_EMPLOYEE e on (p.CREATER = e.EMP_NO)
+      join TBL_COMMON_CODE c on(SUBSTR(c.CD, -1) = CLASSIFICATION_NO)
+		 where c.CD LIKE 'PC00%'
+         AND PRODUCT_NAME like '%' || #{search} || '%'
+		 order by PRODUCT_NO desc
+  </select>
+  <select id="selectProductList" resultMap="boResultMap">
+  	select
+		       PRODUCT_NO
+		     , C.NM as "CLASSIFICATION_NO"
+		     , PRODUCT_NAME
+		     , COST
+		     , SAIL_PRICE
+         , PROFIT_MARGIN
+         , TO_CHAR(EXPIRATION_PERIOD,'YY-MM-DD') as "EXPIRATION_PERIOD"
+         , PRODUCT_IMG
+         , e.EMP_NAME as "create"
+         , p.CREATE_DATE
+         , e.EMP_NAME as "MODIFIER"
+         , p.MODIFY_DATE
+         , p.DELIVERY_DATE
+         , p.USE_YN
+         , INVENTORY
+         , EVENT
+		  from TBL_PRODUCT p 
+		  join TBL_EMPLOYEE e on (p.CREATER = e.EMP_NO)
+      join TBL_COMMON_CODE c on(SUBSTR(c.CD, -1) = CLASSIFICATION_NO)
+		 where c.CD LIKE 'PC00%'
+		 order by PRODUCT_NO desc
+  </select>
+</mapper>

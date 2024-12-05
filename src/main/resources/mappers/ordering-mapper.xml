@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="orderingMapper">
+	<resultMap id="productResultMap" type="ProductDto">
+		<result column="PRODUCT_NO" property="productNo"/>
+		<result column="CLASSIFICATION_NO" property="productDivision"/>
+		<result column="PRODUCT_NAME" property="productName"/>
+		<result column="COST" property="cost"/>
+		<result column="SAIL_PRICE" property="sailPrice"/>
+		<result column="PROFIT_MARGIN" property="profitMargin"/>
+		<result column="EXPIRATION_PERIOD" property="expirationPeriod"/>
+		<result column="PRODUCT_IMG" property="productImg"/>
+		<result column="CREATER" property="creater"/>
+		<result column="CREATE_DATE" property="createDate"/>
+		<result column="MODIFIER" property="modifier"/>
+		<result column="MODIFY_DATE" property="modifyDate" />
+		<result column="DELIVERY_DATE" property="deliveryDate" />
+		<result column="USE_YN" property="useYn" />
+		<result column="INVENTORY" property="inventory" />
+		<result column="EVENT" property="event" />
+		<result column="join_count" property="count" />
+  </resultMap>	
+  <resultMap id="OrderingListResultMap" type="OrderingListDto">
+  	<result column="ORDER_NO" property="orderNo" />
+  	<result column="EMP_NO" property="empNo" />
+  	<result column="BRANCH_NAME" property="deptCode" />
+  	<result column="ORDER_STATUS" property="orderStatus" />
+  	<result column="ORDER_CHECKDATE" property="orderCheckDate" />
+  	<result column="CREATE_DATE" property="createDate" />
+  	<result column="MODIFIER" property="modifier" />
+  	<result column="MODIFY_DATE" property="modifyDate" />
+  	<result column="USE_YN" property="useYn" />
+  	<result column="DISPATCH_NO" property="dispatchNo"/>
+  	<result column="APPROVAL_NO" property="approvalNo"/>
+  </resultMap>
+  <resultMap id="OrderingProductResultMap" type="OrderingProductDto">
+  	<result column="PRODUCT_NO" property="productNo" />
+  	<result column="ORDER_COUNT" property="inventory" />
+  	<result column="CREATE_DATE" property="createDate" />
+  	<result column="MODIFIER" property="modifier" />
+  	<result column="MODIFY_DATE" property="modifyDate" />
+  	<result column="USE_YN" property="useYn" />
+  	<result column="ORDER_NO" property="orderNo" />
+  	<result column="PRODUCT_NAME" property="productName" />
+  </resultMap>
+  <resultMap type="DispatchDto" id="DispatchResultMap">
+  	<result column="DISPATCH_NO" property="dispathchNo"/>
+  	<result column="VEHICLE_TYPE" property="vehicleType"/>
+  	<result column="LICENSE_PLATE" property="licensPlate"/>
+  	<result column="OPERATOR" property="opepator"/>
+  	<result column="EMP_NO" property="empNo"/>
+  	<result column="MODIFIER" property="modifier"/>
+  	<result column="CREATE_DATE" property="createDate"/>
+  	<result column="MODIF Y_DATE" property="modifyDate"/>
+  	<result column="USE_YN" property="useYn"/>
+  
+  </resultMap>
+	
+	<!-- 상품리스트  -->
+	<select id="selectProductList" resultMap="productResultMap">
+  	select     p.PRODUCT_NO
+         , C.NM as "CLASSIFICATION_NO"
+         , p.PRODUCT_NAME
+         , p.COST
+         , p.SAIL_PRICE
+         , p.PROFIT_MARGIN
+         , TO_CHAR(EXPIRATION_PERIOD,'YY-MM-DD') as "EXPIRATION_PERIOD"
+         , p.PRODUCT_IMG
+         , e.EMP_NAME as "create"
+         , p.CREATE_DATE
+         , e.EMP_NAME as "MODIFIER"
+         , p.MODIFY_DATE
+         , p.DELIVERY_DATE
+         , p.USE_YN
+         , p.INVENTORY
+         , p.EVENT
+         , op.ORDER_COUNT as "join_count"
+   from tbl_product p
+        join TBL_EMPLOYEE e on (p.CREATER = e.EMP_NO)
+        join TBL_COMMON_CODE c on(SUBSTR(c.CD, -1) = CLASSIFICATION_NO)
+   left join tbl_ordering_product op on(op.order_No = #{orderNo} and p.product_no = op.product_no)
+   where c.CD LIKE 'PC00%' 
+   order by PRODUCT_NO desc
+  </select>
+  
+  <!-- 발주 리스트 카운트 -->
+  <select id="selectOrderListCount" resultType="_int">
+		select 
+					 count(*)
+		  from TBL_ORDERING			
+	</select>
+	<!-- 발주 리스트 -->
+  <select id="selectOrderList" resultMap="OrderingListResultMap">
+  	SELECT 
+			    ORDER_NO,
+			    e.EMP_NAME as "EMP_NO",
+			    BRANCH_NAME,
+			    ORDER_STATUS,
+			    TO_CHAR(ORDER_CHECKDATE,'YYYY-MM-DD') as "ORDER_CHECKDATE",
+			    o.CREATE_DATE,
+			    o.MODIFIER,
+			    o.MODIFY_DATE,
+			    o.USE_YN,
+			    o.DISPATCH_NO,
+          o.APPROVAL_NO
+			FROM 
+		    	TBL_ORDERING o
+		  join TBL_EMPLOYEE e on (o.EMP_NO = e.EMP_NO)
+		  order by ORDER_NO desc
+  </select>
+  <!-- 발주 상품 -->
+  <select id="selectOrderProductList" resultMap="OrderingProductResultMap">
+		  SELECT 
+				    PRODUCT_NO,
+				    ORDER_COUNT,
+				    CREATE_DATE,
+				    MODIFIER,
+				    MODIFY_DATE,
+				    USE_YN,
+				    ORDER_NO,
+				    PRODUCT_NAME
+				FROM 
+				    TBL_ORDERING_PRODUCT
+				WHERE 
+				    ORDER_NO = #{orderingNo}
+  </select>
+	<insert id="insertOrderingList">
+    INSERT INTO TBL_ORDERING (
+        ORDER_NO,
+        EMP_NO,
+        BRANCH_NAME,
+        ORDER_STATUS,
+        ORDER_CHECKDATE,
+        CREATE_DATE,
+        MODIFY_DATE
+    ) 
+    VALUES (
+        ORDER_NO_SEQ.nextval,  
+        #{empNo},  
+        #{deptCode},            
+        'I',                 
+        sysdate,            
+        sysdate,            
+        sysdate             
+    )
+</insert>
+	<insert id="insertOrderingPro">
+		INSERT INTO TBL_ORDERING_PRODUCT (
+		    PRODUCT_NO,
+		    ORDER_COUNT,
+		    CREATE_DATE,
+		    ORDER_NO,
+		    PRODUCT_NAME
+		)
+		VALUES (
+		
+		    #{productNo}
+			, #{inventory}
+			, sysdate
+		  , ORDER_NO_SEQ.currval
+		  , #{productName}
+		)
+	</insert>
+	<update id="updateCompanion">
+	 update
+		    	TBL_ORDERING
+		  set
+		      APPROVAL_NO = #{approvalNo},
+		      ORDER_STATUS = 'N'
+		  where
+		       ORDER_NO = #{orderNo}
+	</update>
+	<update id="updateApproval">
+	 update
+		    	TBL_ORDERING
+		  set
+		      APPROVAL_NO = #{approvalNo},
+		      DISPATCH_NO = #{dispatchNo},
+		      ORDER_STATUS = 'Y'
+		  where
+		       ORDER_NO = #{orderNo}
+	</update>
+	<select id="selectDispatchList" resultMap="DispatchResultMap">
+	SELECT 
+		    DISPATCH_NO,
+		    VEHICLE_TYPE,
+		    LICENSE_PLATE,
+		    OPERATOR,
+		    EMP_NO,
+		    MODIFIER,
+		    CREATE_DATE,
+		    MODIFY_DATE,
+		    USE_YN
+		FROM 
+   		 	TBL_DISPATCH
+	</select>
+	<select id="selectRandomDispatch" resultMap="DispatchResultMap">
+		select  d.DISPATCH_NO,
+		        VEHICLE_TYPE,
+		        LICENSE_PLATE,
+		        OPERATOR,
+		        d.EMP_NO,
+		        d.MODIFIER,
+		        d.CREATE_DATE,
+		        d.MODIFY_DATE,
+		        d.USE_YN
+		  
+		  from TBL_DISPATCH d
+		  left join TBL_ORDERING o on (o.DISPATCH_NO =d.DISPATCH_NO )
+		  where ORDER_NO = #{orderNo}
+	
+	</select>
+	<!-- 발주 검색 리스트 카운트 -->
+  <select id="searchCount" resultType="_int">
+		select 
+					 count(*)
+		  from TBL_ORDERING o
+          join TBL_EMPLOYEE e on (o.EMP_NO = e.EMP_NO)
+		 where e.EMP_NAME = #{search}
+	</select>
+	<!-- 발주 검색 리스트 -->
+  <select id="selectSearchList" resultMap="OrderingListResultMap">
+  	SELECT 
+			    ORDER_NO,
+			    e.EMP_NAME as "EMP_NO",
+			    BRANCH_NAME,
+			    ORDER_STATUS,
+			    TO_CHAR(ORDER_CHECKDATE,'YYYY-MM-DD') as "ORDER_CHECKDATE",
+			    o.CREATE_DATE,
+			    o.MODIFIER,
+			    o.MODIFY_DATE,
+			    o.USE_YN,
+			    o.DISPATCH_NO,
+          o.APPROVAL_NO
+			FROM 
+		    	 TBL_ORDERING o
+		  join TBL_EMPLOYEE e on (o.EMP_NO = e.EMP_NO)
+		  where e.EMP_NAME = #{search}
+		  order by ORDER_NO desc
+  </select>
+  <update id="updateOrderList">
+  	update TBL_ORDERING
+  		 set MODIFIER = #{empNo},
+  		     MODIFY_DATE = sysdate			
+     where
+           order_No = #{orderNo} 	
+  	     
+  </update>
+  
+  <update id="updateOrderPro">
+  	update TBL_ORDERING_PRODUCT
+  	   set ORDER_COUNT = #{inventory}
+  	      ,MODIFIER = #{modifier}
+					,MODIFY_DATE = sysdate
+		 where
+           order_No = #{orderNo}
+       and product_NO = #{productNo}	
+  	
+  </update>
+  <select id="selectAddProList" resultMap="productResultMap">
+  	select     p.PRODUCT_NO
+         , C.NM as "CLASSIFICATION_NO"
+         , p.PRODUCT_NAME
+         , p.COST
+         , p.SAIL_PRICE
+         , p.PROFIT_MARGIN
+         , TO_CHAR(EXPIRATION_PERIOD,'YY-MM-DD') as "EXPIRATION_PERIOD"
+         , p.PRODUCT_IMG
+         , e.EMP_NAME as "create"
+         , p.CREATE_DATE
+         , e.EMP_NAME as "MODIFIER"
+         , p.MODIFY_DATE
+         , p.DELIVERY_DATE
+         , p.USE_YN
+         , p.INVENTORY
+         , p.EVENT
+   from tbl_product p
+        join TBL_EMPLOYEE e on (p.CREATER = e.EMP_NO)
+        join TBL_COMMON_CODE c on(SUBSTR(c.CD, -1) = CLASSIFICATION_NO)
+   where c.CD LIKE 'PC00%' 
+   order by PRODUCT_NO desc
+  </select>
+  
+  
+  
+  <select id="selectSearchDateCount" resultType="_int">
+  
+  SELECT 
+			    count(*)
+			FROM 
+		    	 TBL_ORDERING o
+		  join TBL_EMPLOYEE e on (o.EMP_NO = e.EMP_NO)
+		  where TO_CHAR(o.CREATE_DATE,'YYYY-MM-DD') = #{date}
+		  order by ORDER_NO desc
+  
+  </select>
+  <select id="selectSearchDate" resultMap="OrderingListResultMap">
+  
+  SELECT 
+				    ORDER_NO,
+				    e.EMP_NAME as "EMP_NO",
+				    BRANCH_NAME,
+				    ORDER_STATUS,
+				    TO_CHAR(ORDER_CHECKDATE,'YYYY-MM-DD') as "ORDER_CHECKDATE",
+				    o.CREATE_DATE,
+				    o.MODIFIER,
+				    o.MODIFY_DATE,
+				    o.USE_YN,
+				    o.DISPATCH_NO,
+	          o.APPROVAL_NO
+			FROM 
+		    	 TBL_ORDERING o
+		  join TBL_EMPLOYEE e on (o.EMP_NO = e.EMP_NO)
+		  where TO_CHAR(o.CREATE_DATE,'YYYY-MM-DD') = #{date}
+		  order by ORDER_NO desc
+  
+  </select>
+  
+  
+  
+  
+  
+</mapper>

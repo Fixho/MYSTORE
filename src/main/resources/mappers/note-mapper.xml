@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="noteMapper">
+<resultMap id="noteResultMap" type="NoteDto">
+	<result column="SEND_NO" property="sendNo"/>
+	<result column="TITLE" property="title"/>
+	<result column="CONTENT" property="content"/>
+	<result column="SENT_DATE" property="sentDate"/>
+	<result column="SENT_ID" property="sentId"/>
+	<result column="STATUS" property="status"/>
+	<result column="TEMP_STORAGE" property="tempStorage"/>
+	<result column="RECEPTION_ID" property="receptionId"/>
+	<result column="RECEPTION_NO" property="receptionNo"/>
+	<result column="RECEP_ID" property="recepId"/>
+	<result column="REC_CHECK" property="recCheck"/>
+	<result column="REC_DATE" property="recDate"/>
+	<result column="DELETE_DATE" property="deleteDate"/>
+	<result column="SOURCE" property="source"/>
+</resultMap>
+
+
+	<select id="selectRecepCount" resultType="_int">
+	select
+				count(*)
+		FROM  
+	   		 TBL_RECEPTION_NOTE
+	WHERE 
+	    	 RECEP_ID = #{empNo}
+		  and
+		     STATUS = #{status} 		
+				
+	
+	</select>
+	
+	<select id="selectSendCount" resultType="_int">
+	select
+				count(*)
+		FROM  
+	   		 TBL_SEND_NOTE
+	WHERE 
+	    	 SENT_ID = #{empNo}
+		  and
+		     STATUS = #{status} 		
+				
+	
+	</select>
+	
+	<select id="selectInBox" resultMap="noteResultMap">
+		SELECT 
+			    RECEPTION_NO,
+					SEND_NO,
+					e.EMP_NAME as "SENT_ID",
+					RECEP_ID,
+					TITLE,
+					CONTENT,
+					REC_CHECK,
+					REC_DATE,
+					STATUS,
+					TO_CHAR(SENT_DATE,'YYYY-MM-DD') as "SENT_DATE"
+	FROM 
+	     TBL_RECEPTION_NOTE
+	join TBL_EMPLOYEE e on (SENT_ID = e.EMP_NO)    
+	WHERE 
+	    RECEP_ID = #{empNo}
+	    and
+		     STATUS = 'Y'  
+	order by SENT_DATE desc	     
+	</select>
+	<select id="selectSendList" resultMap="noteResultMap">
+		SELECT
+					SEND_NO,
+					TITLE,
+					CONTENT,
+					SENT_DATE,
+					SENT_ID,
+					STATUS,
+					TEMP_STORAGE,
+					RECEPTION_ID
+	    FROM 
+	   			TBL_SEND_NOTE
+	   WHERE 
+			    SENT_ID = #{empNo}
+			    and
+				  STATUS = 'Y'
+				  and
+				  TEMP_STORAGE = 'N'
+				  ORDER BY SENT_DATE DESC	
+	</select>
+	<select id="selectTemporayList" resultMap="noteResultMap">
+		SELECT
+					SEND_NO,
+					TITLE,
+					CONTENT,
+					SENT_DATE,
+					SENT_ID,
+					STATUS,
+					TEMP_STORAGE,
+					RECEPTION_ID
+	    FROM 
+	   			TBL_SEND_NOTE	
+	   WHERE 
+			    SENT_ID = #{empNo}
+			    and
+				  STATUS = 'Y'  			
+			    and
+				  TEMP_STORAGE = 'Y'  			
+	</select>
+	<select id="selectTrashNote" resultMap="noteResultMap">
+	SELECT 
+		    SEND_NO, 
+		    TITLE, 
+		    CONTENT, 
+		    SENT_ID, 
+		    STATUS, 
+		    NULL AS RECEPTION_NO, 
+		    NULL AS RECEP_ID,
+		    'S' AS SOURCE,
+		    DELETE_DATE
+		FROM 
+		    TBL_SEND_NOTE 
+		WHERE 
+		    STATUS = 'N'
+		    AND SENT_ID = #{empNo}
+		UNION ALL
+		SELECT 
+		    SEND_NO, 
+		    TITLE, 
+		    CONTENT, 
+		    NULL AS SENT_ID, 
+		    STATUS, 
+		    RECEPTION_NO, 
+		    RECEP_ID,
+		    'R' AS SOURCE,
+		    DELETE_DATE 
+		FROM 
+		    TBL_RECEPTION_NOTE 
+		WHERE 
+		    STATUS = 'N'
+		    AND RECEP_ID = #{empNo}
+				order by DELETE_DATE 
+	
+	</select>
+	<update id="updateRece">
+		update
+					TBL_RECEPTION_NOTE
+			 set
+			    STATUS = 'N',
+			    DELETE_DATE = sysdate
+			    
+		 where
+		      RECEPTION_NO = #{checked} 	
+	</update>
+	<update id="updateSend">
+		update
+					TBL_SEND_NOTE
+			 set
+			    STATUS = 'N',
+			    DELETE_DATE = sysdate
+			    
+		 where
+		      SEND_NO = #{checked} 	
+	</update>
+	<update id="updateSendTrash">
+		update
+					TBL_RECEPTION_NOTE 
+			 set
+			    STATUS = 'Y',
+			    DELETE_DATE = sysdate
+			    
+		 where
+		      RECEPTION_NO = #{rValue} 	
+	</update>
+	<update id="updateRecepTrash">
+		update
+					TBL_SEND_NOTE
+			 set
+			    STATUS = 'Y',
+			    DELETE_DATE = ''
+			    
+		 where
+		      SEND_NO = #{sValue} 	
+	</update>
+	<delete id="deletRecepTrash">
+		delete 
+		  from
+		      TBL_SEND_NOTE
+		 where
+		      SEND_NO = #{sValue}   		  
+	</delete>
+	<delete id="deletSendTrash">
+		delete
+		  from
+		  		TBL_RECEPTION_NOTE
+		 where
+		     	RECEPTION_NO = #{rValue} 	
+	</delete>
+	<select id="selectRecepDetail" resultMap="noteResultMap">
+		SELECT 
+			    RECEPTION_NO,
+					SEND_NO,
+					e.EMP_NAME as "SENT_ID",
+					RECEP_ID,
+					TITLE,
+					CONTENT,
+					REC_CHECK,
+					REC_DATE,
+					STATUS,
+					TO_CHAR(SENT_DATE,'YYYY-MM-DD') as "SENT_DATE"
+	FROM 
+	    TBL_RECEPTION_NOTE 
+	join TBL_EMPLOYEE e on (SENT_ID = e.EMP_NO)   
+	WHERE 
+	    RECEPTION_NO = #{no}
+	</select>
+	<select id="selectSendDetail" resultMap="noteResultMap">
+		SELECT
+					SEND_NO,
+					TITLE,
+					CONTENT,
+					SENT_DATE,
+					SENT_ID,
+					STATUS,
+					TEMP_STORAGE,
+					RECEPTION_ID
+	    FROM 
+	   			TBL_SEND_NOTE
+	   		
+	   WHERE 
+			    SEND_NO = #{no}
+	</select>
+	<select id="checkEmp" resultType="_int">
+		select count(*)
+		  from TBL_EMPLOYEE
+		 where emp_No = #{empNo} 
+	</select>
+	<insert id="insertNote">
+		INSERT INTO TBL_SEND_NOTE 
+		(
+    SEND_NO, 
+    TITLE, 
+    CONTENT, 
+    SENT_DATE, 
+    SENT_ID, 
+    STATUS, 
+    TEMP_STORAGE, 
+    RECEPTION_ID, 
+    DELETE_DATE
+		)
+		VALUES
+		(
+    SEND_NO_SEQ.nextval, 
+    #{title}, 
+    #{content}, 
+    sysdate, 
+    #{sentId}, 
+    'Y', 
+    #{tempStorage}, 
+    #{receptionId}, 
+    ''
+		)
+	</insert>
+	<insert id="insertRecepNote">
+	INSERT INTO TBL_RECEPTION_NOTE 
+							(
+							    RECEPTION_NO, 
+							    SEND_NO, 
+							    SENT_ID, 
+							    RECEP_ID, 
+							    TITLE, 
+							    CONTENT, 
+							    REC_CHECK, 
+							    REC_DATE, 
+							    STATUS, 
+							    DELETE_DATE,
+							    SENT_DATE
+							)
+							VALUES
+							(
+							    RECEPTION_NO_SEQ.nextval, 
+							    SEND_NO_SEQ.currval,
+							    #{sentId}, 
+							    #{receptionId}, 
+							    #{title}, 
+							    #{content}, 
+							    'N', 
+							    '', 
+							    'Y', 
+							    '',
+							    sysdate
+							)
+	</insert>
+	<insert id="insertTempRecepNote">
+	INSERT INTO TBL_RECEPTION_NOTE 
+							(
+							    RECEPTION_NO, 
+							    SEND_NO, 
+							    SENT_ID, 
+							    RECEP_ID, 
+							    TITLE, 
+							    CONTENT, 
+							    REC_CHECK, 
+							    REC_DATE, 
+							    STATUS, 
+							    DELETE_DATE,
+							    SENT_DATE
+							)
+							VALUES
+							(
+							    RECEPTION_NO_SEQ.nextval, 
+							    #{sendNo},
+							    #{sentId}, 
+							    #{receptionId}, 
+							    #{title}, 
+							    #{content}, 
+							    'N', 
+							    '', 
+							    'Y', 
+							    '',
+							    sysdate
+							)
+	</insert>
+	
+	<select id="checkCount" resultType="_int">
+	SELECT 
+			    count(*)
+	FROM 
+	    TBL_RECEPTION_NOTE 
+ where
+      RECEP_ID = #{no}
+   and  
+      REC_CHECK = 'N'	    
+	</select>
+	<update id="selectSendYDetail">
+		update
+					TBL_RECEPTION_NOTE
+			 set
+			    REC_CHECK = 'Y',
+			    REC_DATE = sysdate
+		 where
+		      RECEPTION_NO = #{no} 	
+	</update>
+	<select id="selectMainNote" resultMap="noteResultMap">
+		SELECT 
+			    RECEPTION_NO,
+					SEND_NO,
+					SENT_ID,
+					RECEP_ID,
+					TITLE,
+					CONTENT,
+					REC_CHECK,
+					REC_DATE,
+					STATUS,
+					TO_CHAR(SENT_DATE,'YYYY-MM-DD') as "SENT_DATE"
+	FROM 
+	     TBL_RECEPTION_NOTE
+	WHERE 
+	    RECEP_ID = #{no}
+	    and
+		     STATUS = 'Y' 
+		  order by SENT_DATE desc    
+		     
+	</select>
+	<select id="selectReadNote" resultType="_int">
+		select
+				count(*)
+		FROM  
+	   		 TBL_RECEPTION_NOTE
+	WHERE 
+	    	 RECEP_ID = #{no}
+		   	
+	</select>
+	<select id="selectNoReadNote" resultType="_int">
+		select
+				count(*)
+		FROM  
+	   		 TBL_RECEPTION_NOTE
+	WHERE 
+	    	 RECEP_ID = #{no}
+		  and
+		     REC_CHECK = 'N' 	
+	</select>
+	<update id="updateTemp">
+		update
+					TBL_SEND_NOTE
+			 set
+			    TEMP_STORAGE = 'N'
+		 where
+		      SENd_NO = #{sendNo}
+	</update>
+	
+	
+	
+</mapper>

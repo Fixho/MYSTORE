@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "mybatis-3-mapper.dtd" >
+<mapper namespace="departmentMapper">
+ 	
+	<resultMap id="departmentResultMap" type="DepartmentDto">
+		<result column="dept_code" property="deptCode" />
+		<result column="dept_upstair" property="deptUpStair" />
+		<result column="dept_name" property="deptName" /> 
+		<result column="emp_no" property="empNo" />
+		<result column="create_date" property="createDate" />
+		<result column="modifier" property="modifier" />
+		<result column="modify_date" property="modifyDate" />	
+		<result column="use_yn" property="useYN" />	
+		
+		<collection property="children" ofType="DepartmentDto" />
+	</resultMap>
+	
+	<resultMap id="departmentChangeResultMap" type="DepTransferDto">
+		<result column="TRANSFER_CODE" property="transferCode" />
+		<result column="TRANSFER_BEFORE" property="transferBefore" />
+		<result column="TRANSFER_AFTER" property="transferAfter" /> 
+		<result column="TRANSFER_DATE" property="transferDate" />
+		<result column="EMP_NO" property="empNo" />
+		<result column="CREATE_DATE" property="createDate" />
+		<result column="modifier" property="modifier" />
+		<result column="modify_date" property="modifyDate" />	
+		<result column="use_yn" property="useYN" />	
+		<result column="EMP_NAME" property="empName"/>
+	</resultMap>
+	
+	<resultMap id="commonResultMap" type="CommoncodeDto">
+		<result column="CD" property="Cd" />
+		<result column="NM" property="Nm" />
+		<result column="CLASSIFICATION_NO" property="classificationNo" /> 
+		<result column="CLASSIFICATION_NAME" property="classificationName" />
+		<result column="CREATER" property="creater" />
+		<result column="MODIFY" property="modify" />
+		<result column="CREATE_DATE" property="createrDate" />	
+		<result column="MODIFY_DATE" property="modifyDate" />	
+	</resultMap>
+	
+	<resultMap id="empMemberResultMap" type="EmpMemberDto">
+		<result column="EMP_NO" property="empNo"/>
+		<result column="EMP_NAME" property="empName"/>
+		<result column="EMP_GENDER" property="empGender"/>
+		<result column="EMP_BIRTH" property="empBirth"/>
+		<result column="EMP_PHONE" property="empPhone"/>
+		<result column="EMP_EMAIL" property="empEmail"/>
+		<result column="EMP_ADDRESS" property="empAddress"/>
+		<result column="EMP_EMPLOYMENT" property="empEmployment"/>
+		<result column="EMP_DETAILADDRESS" property="empDetailAddress"/>
+		<result column="EMP_POSTCODE" property="empPostcode"/>
+		<result column="EMP_PASSWORD" property="empPwd"/>
+		<result column="EMP_AUTH" property="empAuth"/>
+		<result column="EMP_RANK" property="empRank"/>
+		<result column="EMP_PROFILE" property="empProfile"/>
+		<result column="DEPT_CODE" property="deptCode"/>
+		<result column="CREATE_DATE" property="createDate"/>
+		<result column="MODIFY_DATE" property="modifyDate"/>
+		<result column="CREATER" property="creater"/>
+		<result column="MODIFIER" property="modifier"/>
+		<result column="USE_YN" property="useYn"/>
+		<result column="AC_NO" property="acNo"/>
+		<result column="AC_BANK" property="acBank"/>	
+		 <!-- CommonCode 테이블에서 가져온 nm 컬럼 -->
+    <result property="nm" column="nm"/>
+    
+    <!-- Department 테이블에서 가져온 dept_upstair, dept_name 컬럼 -->
+    <result property="deptUpStair" column="dept_upstair"/>
+    <result property="deptName" column="dept_name"/>
+	</resultMap>	
+
+	<select id="selectMemberList" resultMap="empMemberResultMap">
+		select
+			e.emp_name,
+			e.emp_no,
+			c.nm,
+			d.dept_upstair,
+			d.dept_name
+		from 
+			tbl_employee e
+		join tbl_common_code c on e.emp_auth = c.cd
+		join tbl_department d on e.dept_code = d.dept_code
+		where 
+			e.emp_no > 1001
+		order by e.emp_name
+	</select>
+	
+	  <select id="selectSearchEmployeeByName" resultMap="empMemberResultMap">
+				select
+			e.emp_name,
+			e.emp_no,
+			c.nm,
+			d.dept_upstair,
+			d.dept_name
+		from 
+			tbl_employee e
+		join tbl_common_code c on e.emp_auth = c.cd
+		join tbl_department d on e.dept_code = d.dept_code
+		WHERE emp_name LIKE '%' || #{empName} || '%'
+
+
+    </select>
+    
+	<select id="selectChangeHistory" resultMap="departmentChangeResultMap">
+	    SELECT 
+	        d.transfer_code,
+	        d.transfer_date,
+	        d.transfer_before,
+	        d.transfer_after,
+	        d.emp_no,
+	        e.emp_name,
+	        d.modifier,
+	        (SELECT e2.emp_name
+	         FROM tbl_employee e2
+	         WHERE e2.emp_no = d.modifier) AS modifierName  <!-- modifierName 필드 추가 -->
+	    FROM tbl_dep_transfer d
+	    JOIN tbl_employee e ON e.emp_no = d.emp_no
+	    WHERE
+	        (
+	            (#{searchType} = 'empNo' AND TO_CHAR(d.emp_no) = #{searchValue})
+	            OR (#{searchType} = 'empName' AND UPPER(e.emp_name) = UPPER(#{searchValue}))
+	        )
+	       AND d.transfer_date BETWEEN TO_DATE(#{startDate}, 'YYYY-MM-DD') AND TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1  <!-- 날짜 범위 필터링 추가 --> 
+	        AND d.transfer_date >= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+	</select>
+	
+	
+
+<!-- DepartmentMapper.xml -->
+<select id="DeptTree" resultMap="empMemberResultMap">
+  select a.*, rownum as CREATER from (
+         (SELECT t1.DEPT_CODE as EMP_NO , t1.DEPT_NAME as EMP_NAME, LEVEL as AC_BANK, NVL(t1.DEPT_UPSTAIR, '#') as DEPT_CODE, '' as EMP_GENDER
+         FROM (SELECT *
+              FROM TBL_DEPARTMENT
+              WHERE USE_YN = 'Y') t1
+         START WITH t1.DEPT_UPSTAIR is null
+         CONNECT BY PRIOR t1.DEPT_CODE = t1.DEPT_UPSTAIR)
+
+         union all
+
+         (select
+            ''||emp.emp_no as EMP_NO,
+            emp.emp_name as EMP_NAME,
+            9 as AC_BANK,
+            emp.dept_code as DEPT_CODE,
+            'bi bi-person-circle' as EMP_GENDER
+         from
+            tbl_employee emp
+         where
+            emp.use_yn = 'Y'
+            and emp.emp_name != '정준수')
+      ) a
+
+    
+
+</select>
+
+
+<insert id="insertDepartment" >
+    INSERT INTO tbl_department
+    (
+        DEPT_CODE,
+        DEPT_UPSTAIR,
+        DEPT_NAME,
+        EMP_NO,
+        CREATE_DATE,
+        MODIFIER,
+        MODIFY_DATE,
+        USE_YN
+    )
+    VALUES
+    (
+         'D' || LPAD(TO_CHAR(DEPARTMENT_DEPT_CODE_SEQ.NEXTVAL), 3, '0'),
+        'D001',
+        #{deptName},  
+        1002, 
+        SYSDATE,  
+        NULL,  
+        NULL, 
+        'Y'
+    )
+</insert>
+
+
+<update id="updateDepartmentName">
+		update
+					tbl_department
+			set DEPT_Name = #{deptName}
+	
+		where DEPT_UPSTAIR = 'D001'
+			and DEPT_CODE = #{deptCode}
+		
+</update>
+
+<delete id="deleteDepartment">
+	delete
+		from tbl_department
+	 where
+	 			dept_code = #{deptCode}
+	 	 and dept_name = #{deptName}
+
+
+</delete>
+
+<select id="getDeptCodeByName" resultMap="departmentResultMap">
+	select
+				dept_code
+	 from tbl_department
+	where dept_name = #{deptName}
+
+
+</select>
+
+
+<select id="TeamList" resultMap="empMemberResultMap">
+	select
+			e.emp_name,
+			e.emp_no,
+			c.nm,
+			d.dept_name
+		from 
+			tbl_employee e
+		join tbl_common_code c on e.emp_auth = c.cd
+		join tbl_department d on e.dept_code = d.dept_code
+		where 
+			e.emp_no > 1001
+        and dept_name = #{dept_name}
+		order by e.emp_name
+		
+		
+
+</select>
+
+
+    <!-- 부서 이동 내역을 insert하는 쿼리 -->
+    <insert id="insertTransferHistory" >
+        <![CDATA[
+        INSERT INTO tbl_dep_transfer (
+            TRANSFER_CODE,
+            TRANSFER_BEFORE,
+            TRANSFER_DATE,
+            EMP_NO,
+            CREATE_DATE,
+            modifier,
+            modify_date,
+            USE_YN
+        ) VALUES (
+            dept_transfer_no_seq.nextval,
+            (SELECT d.DEPT_NAME
+								FROM tbl_employee e
+								JOIN tbl_department d ON e.DEPT_CODE = d.DEPT_CODE
+								WHERE e.EMP_NO = #{empNo}), 
+           	SYSDATE,
+            #{empNo},
+            SYSDATE,
+            1003,
+            SYSDATE,
+            'Y'
+        )
+        ]]>
+    </insert>
+
+    <!-- 직원의 부서 코드를 업데이트하는 쿼리 -->
+    <update id="updateEmployeeDepartment" >
+        <![CDATA[
+        UPDATE tbl_employee
+        SET DEPT_code = (SELECT dept_code
+													 from tbl_department
+													WHERE dept_Name = #{deptName})
+        WHERE EMP_NO = #{empNo} 
+        ]]>
+    </update>
+
+		<!-- 이동 후 부서 기록 삽입 -->
+		<update id="updateAfterDept" >
+        <![CDATA[
+        UPDATE tbl_dep_transfer
+        SET transfer_after = (SELECT d.DEPT_NAME
+																FROM tbl_employee e
+																JOIN tbl_department d ON e.DEPT_CODE = d.DEPT_CODE
+														  	WHERE e.EMP_NO = #{empNo})
+      WHERE EMP_NO = #{empNo} 
+        ]]>
+    </update>
+
+		<select id="getUpDepartments" resultMap="departmentResultMap">
+				select dept_name
+		 from tbl_department
+		where dept_upstair = 'D001'
+		
+		
+		</select>
+  
+	  <select id="getDeptNames" resultMap="departmentResultMap">
+	  
+			  select dept_name
+		 from tbl_department
+		where dept_upstair != 'D001'
+	  
+	  </select>
+
+</mapper>
